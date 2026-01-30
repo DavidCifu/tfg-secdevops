@@ -1,0 +1,38 @@
+name: Pipeline SecDevOps TFG
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  seguretat:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del codi
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ETAPA 1: Detecció de Secrets (Gitleaks)
+      - name: Gitleaks (Detecció de secrets)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ETAPA 2: Escaneig de Vulnerabilitats (Trivy - SCA)
+      - name: Trivy (Escaneig de dependències)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          format: 'table'
+          severity: 'HIGH,CRITICAL'
+
+      # ETAPA 3: Generació de SBOM (Syft)
+      - name: Generar SBOM amb Syft
+        uses: anchore/sbom-action@v0
+        with:
+          image: nginx:latest
+          format: 'cyclonedx-json'
+          artifact-name: 'sbom-tfg.json'
